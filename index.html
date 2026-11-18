@@ -199,6 +199,7 @@
                 Upload Audio File
               </button>
               <p class="hint">Drop WAV, MP3, FLAC, OGG, or M4A anywhere in this window</p>
+              <button id="btnDemo" type="button" class="link-btn">Or load synthesized test loop</button>
             </div>
           </div>
 
@@ -220,14 +221,14 @@
         <section class="grid">
           <div class="panel panel-left">
             <div>
-              <div class="label-row"><span class="label">Recorded Speed</span><span class="sub">Original pressing</span></div>
+              <div class="label-row"><span class="label">Source Speeds</span></div>
               <div class="rpm-box">
                 <button type="button" class="sl1200-key rpm-btn" data-group="source" data-rpm="33"><span class="led on"></span><span class="rpm-num mono">33</span></button>
                 <button type="button" class="sl1200-key rpm-btn" data-group="source" data-rpm="45"><span class="led"></span><span class="rpm-num mono">45</span></button>
               </div>
             </div>
             <div>
-              <div class="label-row"><span class="label">Playback Speed</span><span class="sub">Target platter</span></div>
+              <div class="label-row"><span class="label">Playback Speeds</span></div>
               <div class="rpm-box">
                 <button type="button" class="sl1200-key rpm-btn" data-group="playback" data-rpm="33"><span class="led on"></span><span class="rpm-num mono">33</span></button>
                 <button type="button" class="sl1200-key rpm-btn" data-group="playback" data-rpm="45"><span class="led"></span><span class="rpm-num mono">45</span></button>
@@ -243,7 +244,7 @@
               </div>
               <div style="display:flex;align-items:center;gap:.75rem;">
                 <button id="btnQuartz" type="button" class="quartz-btn" title="Click to snap to 0% Quartz Lock">
-                  <span id="qLed" class="qled on" aria-hidden="true"></span><span>quartz</span>
+                  <span id="qLed" class="qled on" aria-hidden="true"></span>
                 </button>
                 <span id="pitchVal" class="pitch-val mono lock" title="Double-click to reset to 0.00%">+0.00%</span>
               </div>
@@ -388,6 +389,52 @@
       source.start(0);
       const renderedBuffer = await offlineCtx.startRendering();
       return encodeAudioBufferToWav(renderedBuffer);
+    }
+    function createDemoVinylBuffer(audioCtx) {
+      const sampleRate = audioCtx.sampleRate;
+      const duration = 8.0;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = audioCtx.createBuffer(2, length, sampleRate);
+      const left = buffer.getChannelData(0);
+      const right = buffer.getChannelData(1);
+      const beatDuration = 0.5;
+      const chordFreqs = [
+        [220.0, 261.63, 329.63, 392.0],
+        [174.61, 220.0, 261.63, 329.63],
+        [196.0, 246.94, 293.66, 349.23],
+        [164.81, 196.0, 246.94, 293.66],
+      ];
+      for (let i = 0; i < length; i++) {
+        const t = i / sampleRate;
+        const beatIndex = Math.floor(t / beatDuration);
+        const beatPhase = (t % beatDuration) / beatDuration;
+        const barIndex = Math.floor(beatIndex / 4) % chordFreqs.length;
+        const chord = chordFreqs[barIndex];
+        const kickEnv = Math.exp(-beatPhase * 14);
+        const kickFreq = 52 + 95 * Math.exp(-beatPhase * 28);
+        const kick = Math.sin(2 * Math.PI * kickFreq * (t % beatDuration)) * kickEnv * 0.45;
+        const offbeatPhase = ((t + beatDuration * 0.5) % beatDuration) / beatDuration;
+        const hatEnv = Math.exp(-offbeatPhase * 32);
+        const hatNoise = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+        const hat = hatNoise * hatEnv * 0.09;
+        const chordEnv = Math.exp(-((t % (beatDuration * 2)) * 2.2));
+        let chordSigL = 0, chordSigR = 0;
+        for (let n = 0; n < chord.length; n++) {
+          const f = chord[n];
+          const wave = Math.sin(2 * Math.PI * f * t) * 0.65 + Math.sin(2 * Math.PI * f * 2 * t) * 0.18;
+          const pan = n % 2 === 0 ? 0.65 : 0.35;
+          chordSigL += wave * pan;
+          chordSigR += wave * (1 - pan);
+        }
+        chordSigL = (chordSigL / chord.length) * chordEnv * 0.38;
+        chordSigR = (chordSigR / chord.length) * chordEnv * 0.38;
+        const bassFreq = chord[0] * 0.5;
+        const bassEnv = Math.exp(-beatPhase * 4.5);
+        const bass = Math.sin(2 * Math.PI * bassFreq * t) * bassEnv * 0.28;
+        left[i] = Math.tanh(kick + hat + chordSigL + bass);
+        right[i] = Math.tanh(kick + hat + chordSigR + bass);
+      }
+      return buffer;
     }
 
     // --- State ---
@@ -701,6 +748,11 @@
       const file = e.target.files && e.target.files[0];
       if (file) handleFile(file);
       e.target.value = "";
+    });
+
+    $("btnDemo").addEventListener("click", () => {
+      const ctx = ensureAudioContext();
+      loadDecodedBuffer(createDemoVinylBuffer(ctx), "vinyl_sample_loop.wav");
     });
 
     document.querySelectorAll(".rpm-btn").forEach((btn) => {
