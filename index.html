@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Turntable Pitch Deck — 33/45 RPM &amp; ±8% Speed Control</title>
-  <meta name="description" content="Upload audio recorded at 33 or 45 RPM, adjust playback speed and ±8% turntable pitch with a live waveform, and export pitched WAV audio." />
+  <title>Pitcher — 33/45 RPM & ±8% Speed Control</title>
+  <meta name="description" content="Pitcher" />
   <style>
     @font-face {
       font-family: 'Inter';
@@ -171,11 +171,11 @@
           <div class="hdr-left">
             <h1 class="title">Pitcher</h1>
             <div id="trackMeta" class="track-meta">
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true">Â·</span>
               <span id="trackName" class="track-name"></span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true">Â·</span>
               <span id="trackRate" class="mono"></span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true">Â·</span>
               <span id="trackCh"></span>
             </div>
           </div>
@@ -187,7 +187,7 @@
 
         <section class="section">
           <div id="waveWrap" class="wave-wrap">
-            <canvas id="waveCanvas" class="wave-canvas hidden" aria-label="Audio waveform — click or drag to seek"></canvas>
+            <canvas id="waveCanvas" class="wave-canvas hidden" aria-label="Audio waveform â€” click or drag to seek"></canvas>
             <div id="hoverTip" class="hover-tip mono hidden"></div>
             <div id="decodeView" class="center-abs decode hidden">
               <span class="icon spin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M4.93 4.93l2.12 2.12"/><path d="M16.95 16.95l2.12 2.12"/><path d="M2 12h3"/><path d="M19 12h3"/><path d="M4.93 19.07l2.12-2.12"/><path d="M16.95 7.05l2.12-2.12"/></svg></span>
@@ -211,7 +211,7 @@
             </div>
             <div class="mono" style="display:flex;align-items:center;gap:.75rem;color:#374151;">
               <span>Speed <strong id="rateVal" style="color:#111317;font-weight:700;">1.000x</strong></span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true">Â·</span>
               <span>Shift <strong id="semiVal" style="color:#111317;font-weight:700;">+0.00 st</strong></span>
             </div>
           </div>
@@ -234,7 +234,7 @@
                 <button type="button" class="sl1200-key rpm-btn" data-group="playback" data-rpm="45"><span class="led"></span><span class="rpm-num mono">45</span></button>
               </div>
             </div>
-            <p id="rpmInfo" class="mono" style="margin:0;font-size:.75rem;color:#374151;">Matched 33⅓ RPM (1.000x base)</p>
+            <p id="rpmInfo" class="mono" style="margin:0;font-size:.75rem;color:#374151;">Matched 33â…“ RPM (1.000x base)</p>
           </div>
 
           <div class="panel">
@@ -691,9 +691,9 @@
       const baseRpmRatio = RPM_EXACT[playbackRpm] / RPM_EXACT[sourceRpm];
       const basePercentDelta = (baseRpmRatio - 1) * 100;
       if (sourceRpm === playbackRpm) {
-        rpmInfo.textContent = "Matched " + (sourceRpm === 33 ? "33⅓" : "45") + " RPM (1.000x base)";
+        rpmInfo.textContent = "Matched " + (sourceRpm === 33 ? "33â…“" : "45") + " RPM (1.000x base)";
       } else {
-        rpmInfo.textContent = (sourceRpm === 33 ? "33⅓" : "45") + " → " + (playbackRpm === 33 ? "33⅓" : "45") +
+        rpmInfo.textContent = (sourceRpm === 33 ? "33â…“" : "45") + " â†’ " + (playbackRpm === 33 ? "33â…“" : "45") +
           " RPM (" + (basePercentDelta >= 0 ? "+" : "") + basePercentDelta.toFixed(2) + "% base)";
       }
     }
@@ -867,3 +867,15 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
