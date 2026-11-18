@@ -127,8 +127,8 @@
     .pitch-row { display:flex; align-items:center; gap:.625rem; }
     .nudge { height:2.5rem; width:2.5rem; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; border-radius:2px; }
     .slider-wrap { position:relative; flex:1; display:flex; align-items:center; }
-    .center-notch { pointer-events:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:2px; height:1.5rem; background:rgba(148,163,184,.5); }
-    .center-notch.on { background:#22C55E; }
+    .quartz-notch { pointer-events:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:2px; height:1.5rem; background:rgba(148,163,184,.5); }
+    .quartz-notch.on { background:#22C55E; }
     .ticks { margin-top:.5rem; padding:0 3rem; display:flex; align-items:center; justify-content:space-between; }
     .tick-btn { background:none; border:0; padding:0; display:flex; flex-direction:column; align-items:center; gap:.25rem; cursor:pointer; color:#cbd5e1; }
     .tick-mark { display:block; width:1px; height:.5rem; background:#64748b; }
@@ -138,6 +138,13 @@
     .tick-lbl { font-size:11px; white-space:nowrap; }
     .tick-lbl.active { color:#FF553D; font-weight:700; }
     .tick-lbl.active.zero { color:#22C55E; }
+    .quartz-btn {
+      display:inline-flex; align-items:center; gap:.375rem; padding:.25rem .625rem; border-radius:2px; background:#16191F; border:1px solid #2F3540;
+      font-size:11px; color:#e2e8f0; cursor:pointer;
+    }
+    .quartz-btn:hover { border-color:#4B5563; }
+    .qled { width:.625rem; height:.375rem; border-radius:1px; background:#152E1E; border:1px solid #224A30; }
+    .qled.on { background:#22C55E; border-color:#22C55E; box-shadow:0 0 8px #22C55E; }
     .pitch-val { font-size:1.25rem; font-weight:700; letter-spacing:-.025em; cursor:pointer; user-select:none; }
     .pitch-val.lock { color:#14171C; }
     .pitch-val.off { color:#B91C1C; }
@@ -213,14 +220,14 @@
         <section class="grid">
           <div class="panel panel-left">
             <div>
-              <div class="label-row"><span class="label">Set file speed</span></div>
+              <div class="label-row"><span class="label">Recorded Speed</span><span class="sub">Original pressing</span></div>
               <div class="rpm-box">
                 <button type="button" class="sl1200-key rpm-btn" data-group="source" data-rpm="33"><span class="led on"></span><span class="rpm-num mono">33</span></button>
                 <button type="button" class="sl1200-key rpm-btn" data-group="source" data-rpm="45"><span class="led"></span><span class="rpm-num mono">45</span></button>
               </div>
             </div>
             <div>
-              <div class="label-row"><span class="label">Playback speed</span></div>
+              <div class="label-row"><span class="label">Playback Speed</span><span class="sub">Target platter</span></div>
               <div class="rpm-box">
                 <button type="button" class="sl1200-key rpm-btn" data-group="playback" data-rpm="33"><span class="led on"></span><span class="rpm-num mono">33</span></button>
                 <button type="button" class="sl1200-key rpm-btn" data-group="playback" data-rpm="45"><span class="led"></span><span class="rpm-num mono">45</span></button>
@@ -235,6 +242,9 @@
                 <label for="pitchFader" class="label" style="display:block;">Pitch Control</label>
               </div>
               <div style="display:flex;align-items:center;gap:.75rem;">
+                <button id="btnQuartz" type="button" class="quartz-btn" title="Click to snap to 0% Quartz Lock">
+                  <span id="qLed" class="qled on" aria-hidden="true"></span><span>quartz</span>
+                </button>
                 <span id="pitchVal" class="pitch-val mono lock" title="Double-click to reset to 0.00%">+0.00%</span>
               </div>
             </div>
@@ -244,7 +254,7 @@
                   <span class="icon sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
                 </button>
                 <div class="slider-wrap">
-                  <div id="centerNotch" class="center-notch on" aria-hidden="true"></div>
+                  <div id="quartzNotch" class="quartz-notch on" aria-hidden="true"></div>
                   <input id="pitchFader" class="sl1200-pitch-slider" type="range" min="-8" max="8" step="0.01" value="0" aria-label="Pitch percentage from -8% to +8%" />
                 </div>
                 <button id="btnPitchUp" type="button" class="sl1200-key nudge" aria-label="Increase pitch by 0.1%" title="Increase 0.1%">
@@ -397,7 +407,7 @@
     const trackMetaEl = $("trackMeta"), trackName = $("trackName"), trackRate = $("trackRate"), trackCh = $("trackCh");
     const replaceLabel = $("replaceLabel"), timeCur = $("timeCur"), timeTotal = $("timeTotal");
     const rateVal = $("rateVal"), semiVal = $("semiVal"), errorMsg = $("errorMsg"), rpmInfo = $("rpmInfo");
-    const pitchFader = $("pitchFader"), pitchVal = $("pitchVal"), centerNotch = $("centerNotch");
+    const pitchFader = $("pitchFader"), pitchVal = $("pitchVal"), qLed = $("qLed"), quartzNotch = $("quartzNotch");
     const btnPitchDown = $("btnPitchDown"), btnPitchUp = $("btnPitchUp");
     const btnStart = $("btnStart"), btnStop = $("btnStop"), btnSave = $("btnSave"), saveLabel = $("saveLabel"), startLed = $("startLed");
     const ticksEl = $("ticks");
@@ -609,15 +619,15 @@
     }
 
     function updateTickStyles() {
+      const isQuartz = Math.abs(pitchPercent) < 0.005;
       const buttons = ticksEl.querySelectorAll(".tick-btn");
-      const isCenter = Math.abs(pitchPercent) < 0.005;
       buttons.forEach((btn, i) => {
         const tick = SCALE_TICKS[i];
         const isZero = tick === 0;
         const isActive = Math.abs(pitchPercent - tick) < 0.02;
         const mark = btn.querySelector(".tick-mark");
         const lbl = btn.querySelector(".tick-lbl");
-        mark.className = "tick-mark" + (isZero ? " zero" : "") + (tick % 4 === 0 && !isZero ? " major" : "") + (isZero && isCenter ? " on" : "");
+        mark.className = "tick-mark" + (isZero ? " zero" : "") + (tick % 4 === 0 && !isZero ? " major" : "") + (isZero && isQuartz ? " on" : "");
         lbl.className = "tick-lbl mono" + (isActive ? " active" + (isZero ? " zero" : "") : "");
         lbl.textContent = (tick > 0 ? "+" : "") + tick;
       });
@@ -660,10 +670,12 @@
       emptyView.classList.toggle("hidden", !showEmpty);
       waveWrap.classList.toggle("can-seek", showWave);
 
+      const isQuartz = Math.abs(pitchPercent) < 0.005;
       pitchFader.value = String(pitchPercent);
       pitchVal.textContent = (pitchPercent > 0 ? "+" : "") + pitchPercent.toFixed(2) + "%";
-      pitchVal.className = "pitch-val mono lock";
-      centerNotch.classList.toggle("on", Math.abs(pitchPercent) < 0.005);
+      pitchVal.className = "pitch-val mono " + (isQuartz ? "lock" : "off");
+      qLed.classList.toggle("on", isQuartz);
+      quartzNotch.classList.toggle("on", isQuartz);
       btnPitchDown.disabled = isDecoding || pitchPercent <= -8;
       btnPitchUp.disabled = isDecoding || pitchPercent >= 8;
       updateTickStyles();
@@ -691,11 +703,6 @@
       e.target.value = "";
     });
 
-    $("btnDemo").addEventListener("click", () => {
-      const ctx = ensureAudioContext();
-      loadDecodedBuffer(createDemoVinylBuffer(ctx), "vinyl_sample_loop.wav");
-    });
-
     document.querySelectorAll(".rpm-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const rpm = Number(btn.dataset.rpm);
@@ -710,6 +717,7 @@
       applyRateChange(); render();
     });
     pitchFader.addEventListener("dblclick", () => { pitchPercent = 0; applyRateChange(); render(); });
+    $("btnQuartz").addEventListener("click", () => { pitchPercent = 0; applyRateChange(); render(); });
     pitchVal.addEventListener("dblclick", () => { pitchPercent = 0; applyRateChange(); render(); });
     btnPitchDown.addEventListener("click", () => {
       pitchPercent = Math.max(-8, Math.min(8, Math.round((pitchPercent - 0.1) * 100) / 100));
